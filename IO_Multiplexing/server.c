@@ -9,13 +9,19 @@ main(int argc, char** argv)
     int maxi;   //Maximum current client index
     int nready; //return value of pull(), number oof ready fd 
     int i;
-    int OPEN_MAX = sysconf(_SC_OPEN_MAX);
+    //int OPEN_MAX = sysconf(_SC_OPEN_MAX);
+    int OPEN_MAX = 5;
+    int sockfd;
+    size_t n;
 
     //printf("OPEN_MAX is %d\n", OPEN_MAX);
    
     struct sockaddr_in cliaddr, servaddr;
     struct pollfd client[OPEN_MAX];
     
+    char recevline[MAXLINE];
+    char sendline[MAXLINE];
+
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
     bzero(&servaddr, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
@@ -38,8 +44,8 @@ main(int argc, char** argv)
 
         if (client[0].revents & POLLRDNORM)
         {
-            size_t clilen = sizeof(cliaddr);
-            connfd = accept(listenfd, (SA *) &cliaddr, clilen);
+            socklen_t clilen = sizeof(cliaddr);
+            connfd = accept(listenfd, (SA *) &cliaddr, &clilen);
 
             for (i = 1; i < OPEN_MAX; i++)
             {
@@ -49,6 +55,7 @@ main(int argc, char** argv)
                     break;
                 }
             }
+            client[i].events = POLLRDNORM;
             if (i == OPEN_MAX)
             {
                 printf("Too many clients\n");
@@ -62,11 +69,32 @@ main(int argc, char** argv)
         }
         for (i = 1; i <= maxi; i++) //check if any client's data is ready
         {
-            if (client[i].fd < 0)
+            if ((sockfd = client[i].fd) < 0)
                 continue;
-            if (client[i].revents & (POLLRDNORM | POLLERR)
+            if (client[i].revents & (POLLRDNORM | POLLERR))
             {
-
+                if ((n = readline(sockfd, recevline, MAXLINE)) == 0)
+                {
+                    close(sockfd);
+                    client[i].fd = -1;
+                }
+                else if (n < 0)
+                {
+                    if (errno == ECONNRESET) //connection reset by client
+                    {
+                        close(sockfd);
+                        client[i].fd = -1;
+                    }
+                    else
+                    {
+                        printf("read error\n");
+                        exit(0);
+                    }
+                }
+                else
+                {
+                    writen(sockfd, recevline, n);
+                }
             }    
         }
     }

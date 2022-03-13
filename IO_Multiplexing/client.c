@@ -31,31 +31,42 @@ str_cli1(FILE* fp, int sockfd)
 	char sendline[MAXLINE], receiveline[MAXLINE];
 	int maxfd1;
 	fd_set rset;
+	int stdeof = 0;
+	int n;
 
 	FD_ZERO(&rset);
 
 	for (; ;)
 	{
 		FD_SET(sockfd, &rset);
-		FD_SET(fileno(fp), &rset);
+		if (stdeof == 0)
+			FD_SET(fileno(fp), &rset);
 		maxfd1 = max(sockfd, (fileno(fp)));
 		select(maxfd1+1, &rset, NULL, NULL, NULL);
 
 		if (FD_ISSET(sockfd, &rset))
 		{
-			if (readline(sockfd, receiveline, MAXLINE) == 0)
+			if ((n = read(sockfd, receiveline, MAXLINE)) == 0)
 			{
-				printf("server terminated\n");
-				exit(0);
+				if (stdeof == 1)
+					return;
+				else
+				{
+					printf("server terminated\n");
+					exit(0);
+				}
 			}
-			fputs(receiveline, stdout);
-
+			else
+				writen(fileno(stdout), receiveline, strlen(receiveline));
 		}
 		if (FD_ISSET(fileno(fp), &rset))
 		{
-			if (fgets(sendline, MAXLINE, fp) == 0)
+			if (read(fileno(fp), sendline, MAXLINE) == 0)
 			{
-				return;
+				shutdown(sockfd, SHUT_WR);
+				stdeof = 1;
+				FD_CLR(fileno(fp), &rset);
+				continue;
 			}
 			writen(sockfd, sendline, strlen(sendline));
 		}
