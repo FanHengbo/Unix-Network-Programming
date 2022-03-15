@@ -1,4 +1,5 @@
 #include "unp.h"
+#include "utl.h"
 int main(int argc, char** argv)
 {
     int sockfd;
@@ -19,6 +20,7 @@ int main(int argc, char** argv)
     for (; ;)
     {
         n = recvfrom(sockfd, recieveline, MAXLINE, 0, (SA *) &cliaddr, &len);
+        printf("receive client message from %s \n", sock_ntop((SA *) &cliaddr, len));
         sendto(sockfd, recieveline, sizeof(recieveline), 0, (SA *) &cliaddr, len);
     }
     return 0;
