@@ -14,14 +14,15 @@ int main(int argc, char** argv)
     bind(sockfd, (SA *) &servaddr, sizeof(servaddr));
 
     int n;
-    socklen_t len = sizeof(cliaddr);
+    socklen_t len;
     char recieveline[MAXLINE];
 
     for (; ;)
     {
+        len = sizeof(cliaddr);
         n = recvfrom(sockfd, recieveline, MAXLINE, 0, (SA *) &cliaddr, &len);
-        printf("receive client message from %s \n", sock_ntop((SA *) &cliaddr, len));
-        sendto(sockfd, recieveline, sizeof(recieveline), 0, (SA *) &cliaddr, len);
+        printf("receive %d packets from %s \n", n ,sock_ntop((SA *) &cliaddr, len));
+        sendto(sockfd, recieveline, n, 0, (SA *) &cliaddr, len);
     }
     return 0;
 }
