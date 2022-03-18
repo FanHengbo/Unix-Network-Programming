@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     {
         len = sizeof(cliaddr);
         n = recvfrom(sockfd, recieveline, MAXLINE, 0, (SA *) &cliaddr, &len);
-        printf("receive %d packets from %s \n", n ,sock_ntop((SA *) &cliaddr, len));
+        printf("receive %d bytes from %s \n", n ,sock_ntop((SA *) &cliaddr, len));
         sendto(sockfd, recieveline, n, 0, (SA *) &cliaddr, len);
     }
     return 0;
