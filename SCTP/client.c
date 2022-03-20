@@ -27,7 +27,7 @@ int main(int argc, char** argv)
     bzero(&evnts, sizeof(evnts));
     evnts.sctp_data_io_event = 1;
     setsockopt(sockfd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof(evnts));
-
+    // left str_to_all () to implement
     strcli(stdin, sockfd, (SA *) &servaddr, sizeof(servaddr));
     return 0;
 
