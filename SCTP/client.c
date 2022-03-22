@@ -1,5 +1,7 @@
 #include "unp.h"
 #include <netinet/sctp.h>
+#include "util.h"
+
 void strcli(FILE* fp, int sockfd, struct sockaddr* psockaddr, size_t socklen);
 int main(int argc, char** argv)
 {
@@ -18,7 +20,7 @@ int main(int argc, char** argv)
         printf("Send messages to all streams\n");
         one_to_all =1;
     }
-    bzero(&servaddr,sizoof(servaddr));
+    bzero(&servaddr,sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(SERV_PORT);
     Inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
@@ -40,8 +42,9 @@ void strcli(FILE* fp, int sockfd, struct sockaddr* psockaddr, size_t socklen)
     char receivline[MAXLINE];
     int read_size;
     int msg_flags;
+    socklen_t len;
 
-    bzero(&sri, sizoof(sri));
+    bzero(&sri, sizeof(sri));
     while (fgets(sendline, MAXLINE, fp))
     {
         if (sendline[0] != '[')
@@ -52,9 +55,10 @@ void strcli(FILE* fp, int sockfd, struct sockaddr* psockaddr, size_t socklen)
         sri.sinfo_stream = strtol(&sendline[1], NULL, 0);
         sctp_sendmsg(sockfd, sendline, sizeof(sendline), psockaddr, socklen, 0, 0, sri.sinfo_stream, 0, 0);
 
-        read_size = sctp_recvmsg(sockfd, receivline, sizeof(receivline), (SA *) &peeraddr, sizeof(peeraddr), &sri, &msg_flags);
+        len = sizeof(peeraddr);
+        read_size = sctp_recvmsg(sockfd, receivline, sizeof(receivline), (SA *) &peeraddr, &len, &sri, &msg_flags);
         printf("from str :%d seq :%d (assoc:0x%x)\n", sri.sinfo_stream, sri.sinfo_ssn, (u_int) sri.sinfo_assoc_id);
-        writen(stdout, receivline, sizeof(receivline));
+        writen(fileno(stdout), receivline, sizeof(receivline));
 
     }
 }
