@@ -47,7 +47,7 @@ int main(int argc, char **argv)
         printf("tcp connect error for host %s serivice %s\n", argv[1], argv[2]);
         exit(EXIT_FAILURE);
     }
-    freeaddrinfo(result_tranverse);
+    freeaddrinfo(result);
 
 
     len = sizeof(ss);

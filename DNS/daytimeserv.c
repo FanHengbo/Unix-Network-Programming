@@ -2,12 +2,7 @@
 #include "utils.h"
 int main(int argc, char **argv)
 {
-    if (argc != 2)
-    {
-        printf("Usage daytimeserv <service>\n");
-        exit(EXIT_FAILURE);
-    }
-
+    
     int listenfd, connfd;
     int n;
     const int on = 1;
@@ -16,20 +11,37 @@ int main(int argc, char **argv)
     struct sockaddr_storage cliaddr;
     socklen_t len;
     time_t ticks;
+    char *host, *service;
+
+    if (argc == 2)
+    {
+        host = NULL;
+        service = argv[1];
+    }
+    else if (argc ==  3)
+    {
+        host = argv[1];
+        service = argv[2];
+    }
+    else
+    {
+        printf("Usage: daytimeserv <service> / daytimeserv <hostname> <service>\n");
+        exit(EXIT_FAILURE);
+    }
 
     bzero(&hint, sizeof(hint));
     hint.ai_family = AF_UNSPEC;
     hint.ai_flags = AI_PASSIVE;
     hint.ai_socktype = SOCK_STREAM;
     
-    if ((n = getaddrinfo(NULL, argv[1], &hint, &result)) < 0)
+    if ((n = getaddrinfo(host, service, &hint, &result)) < 0)
     {
         printf("getaddrinfo error for server with service %s, error message: %s\n", argv[1], gai_strerror(n));
         exit(EXIT_FAILURE);
     }
     for (result_tranverse = result; result_tranverse; result_tranverse = result_tranverse->ai_next)
     {
-        if ((listenfd = socket(result_tranverse->ai_family, result_tranverse->ai_socktype, result_tranverse->ai_protocol)))
+        if ((listenfd = socket(result_tranverse->ai_family, result_tranverse->ai_socktype, result_tranverse->ai_protocol)) < 0)
         {
             continue;
         }
@@ -40,6 +52,7 @@ int main(int argc, char **argv)
         }
         close(listenfd);
     }
+
     if (result_tranverse == NULL)
     {
         printf("Couldn't connect for server with service: %s\n", argv[1]);
@@ -47,7 +60,7 @@ int main(int argc, char **argv)
     }
     listen(listenfd, LISTENQ);
     len = result_tranverse->ai_addrlen;
-    freeaddrinfo(result_tranverse);
+    freeaddrinfo(result);
 
     for (; ;)
     {
