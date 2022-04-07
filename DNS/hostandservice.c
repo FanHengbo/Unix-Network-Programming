@@ -37,8 +37,11 @@ int main(int argc, char** argv)
     }
     if ((serv_ptr = getservbyname(argv[2], "tcp")) == NULL)
     {
-        printf("Can't handle this service \n");
-        exit(0);
+        if ((serv_ptr = getservbyport(htons(atoi(argv[2])), "tcp")) == NULL)
+        {
+            printf("Can't handle this service \n");
+            exit(EXIT_FAILURE);
+        }
     }
     for (; *pptr; pptr++)
     {

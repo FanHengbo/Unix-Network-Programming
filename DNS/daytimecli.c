@@ -14,8 +14,9 @@ int main(int argc, char **argv)
     int n;
     struct sockaddr_storage ss;
     char receiveline[MAXLINE];
-    struct sockaddr_in servaddr;
+    struct sockaddr_in servaddr, cliaddr;
     socklen_t len;
+
 
     bzero(&hint,sizeof(hint));
     hint.ai_family = AF_UNSPEC;
@@ -52,8 +53,10 @@ int main(int argc, char **argv)
 
     len = sizeof(ss);
     getpeername(sockfd, (SA *)&ss, &len);
+    len = sizeof(cliaddr);
+    getsockname(sockfd, (SA *) &cliaddr, &len);
     printf("Connected to %s(double check to make sure it's right)\n", sock_ntop((SA *) &ss, len));
-
+    printf("local address is %s\n" ,sock_ntop((SA *) &cliaddr, len));
     while ((n = read(sockfd, receiveline, MAXLINE)))
     {
         receiveline[n] = 0;

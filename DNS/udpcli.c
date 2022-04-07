@@ -16,7 +16,8 @@ int main(int argc, char **argv)
     struct addrinfo hint;
     char *hostname = argv[1];
     char *service = argv[2];
-    struct sockaddr servaddr, cliaddr;
+    struct sockaddr_in cliaddr;
+    struct sockaddr_in servaddr;
     socklen_t len, len_cli;
 
     
@@ -33,9 +34,15 @@ int main(int argc, char **argv)
     {
         if ((sockfd = socket(result_tranverse->ai_family, result_tranverse->ai_socktype, result_tranverse->ai_protocol)) >= 0)
         {
-            break;           
+            break;    
         }
 
+        // if (connect(sockfd, result_tranverse->ai_addr, result_tranverse->ai_addrlen) == 0)
+        // {
+        //     break;
+        // }
+        
+        close(sockfd);
     }
     if (result_tranverse == NULL)
     {
@@ -46,15 +53,17 @@ int main(int argc, char **argv)
     freeaddrinfo(result);
 
     len = sizeof(servaddr);
+    
+    printf("sending information to %s\n", sock_ntop((SA *) &servaddr, len));
+    
+    sendto(sockfd, "", 1, 0 ,(SA *) &servaddr, len);
     len_cli = sizeof(cliaddr);
     getsockname(sockfd, (SA *) &cliaddr, &len_cli);
     printf("local address is %s\n", sock_ntop((SA *) &cliaddr, len_cli));
-    printf("sending information to %s\n", sock_ntop((SA *) &servaddr, len));
-    
-    //sendto(sockfd, "", 1, 0 ,(SA *) &servaddr, len);
-    recesize = recvfrom(sockfd, receiveline, MAXLINE, 0, NULL, NULL);
+    recesize = recvfrom(sockfd, receiveline, MAXLINE, 0, (SA *) &servaddr, &len);
     receiveline[recesize] = 0;
     fputs(receiveline, stdout);
+
     
 
     return 0;
