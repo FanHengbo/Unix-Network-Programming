@@ -17,4 +17,26 @@ Unix domain Protocol是用来进行同一个host上的进程之间的通讯的�
 - 首先创造一个Unix domain socket,如果进程之间是无关的(例如不是父子关系),那么具体步骤就和我们之前叙述的相似,server和client bind某个pathname之后connect来进行通讯
 - 之后就可以创建新的descriptor(使用open, pipe, socket, accept这种函数),也可以看出我们要求的是在进程之间传递descriptor,而不是仅仅file descriptor.
 - sending process通过一个`msghdr`结构体来传递希望接受者打开的descriptor, 在使用`sendmsg`函数之后我们可以称这个descriptor进入了in flight状态,这时候哪怕刚刚调用完`sendmsg`函数进程就把这个descriptor关了(当然是在接受者调用`recvmsg`之前),这个descriptor是始终开放的.
-  
+---
+在进行下一步详细介绍如何pass descriptor之前,首先来补充一下关于ancillary data的知识.那么就不得不提到另外一个和它一起关系密切的结构体`msghdr{}`
+![](image/2022-04-09-16-15-31.png)
+这里也顺便补充一下`sendmsg`和`recvmsg`的知识, 这两个函数可以进行scatter read(读出来的数据可以放到多个buffer中)和gather write(可以让多个buffer中的数据写到一个输出之中).
+![](image/2022-04-09-16-20-10.png)
+注意这个地方传递的是`msghdr`结构体指针, 也就意味着这两个函数可以对结构体中的值进行修改,但是其中的`msg_flags`成员存在差异, 只有`recvmsg`能够对其进行修改, 而`sendmsg`不能, 换句话说就这一个成员而言, 前者才是真正意义上的value-result成员, 后者尽管可以修改但是函数的设计上选择了忽略这个成员.
+假设现在一个UDP socket在调用`recvmsg`之前是这样的
+![](image/2022-04-09-16-24-03.png)
+那么调用之后就是这样的
+![](image/2022-04-09-16-24-51.png)
+可以看到`recvmsg`对结构体进行了填充, 具体细节不进行展开.
+
+---
+下面正式开始介绍ancillary data.这个数据又被称为是control information.在`msghdr{}`结构体中可以看到存在`msg_control`和`msg_controllen`这两个数据成员.
+其中前者是一个结构体指针指向`cmsghdr`, 其数据成员有:
+![](image/2022-04-09-16-30-21.png)
+`msg_control`指向的一系列`cmsghdr`结构体以及数据部分之间是可能会存在pad的, 目的是为了让它们对齐, 使得kernel能够更有效率的访问其中的结构体以及数据.
+![](image/2022-04-09-16-42-59.png)
+那么具体来说应该怎么在不同的进程之间进行descriptor的传递呢?这里给出一个例子,思考一下`cat`是如何工作的
+- 在`cat`程序中设定`socketpair`, 之后进行fork出一个child 
+- child去执行对应的打开文件的指令, 并将打开文件的fd传递给parent
+- parent读取接受到的fd, 再从fd中读取文件内容最终打印出来
+在上述过程中child与parent之间传递fd就是通过`msghdr{}`的结构体来进行的.
