@@ -11,7 +11,10 @@ Unix domain Protocol是用来进行同一个host上的进程之间的通讯的�
 - 对其使用`connect`函数的话和使用`open`函数write only的情况相同.
 - 如果调用`connect`的时候listening方的queue满了,这个时候会直接返回赢得`ECONNREFUSED`,这就和TCP不一样了,TCP在遇到这种情况的时候,listening这一方会忽略SYNbit,这时候发送方会多尝试几次发送SYN
 - 和UDP不一样的地方在于如果使用一个unbound的一个UDP socket发送数据的话kernel不会自动给它bind一个`pathname`(UDP会在发送的时候给它分配一个端口),这也就意味着不bind就不是full-duplex,receiver无法回复消息.也就是说无论是TCP还是UDP,如果不bind的话,在`connect`函数中kernel是不会帮你bind的.
-# passing descriptors
+# passing out-of-band data
+像`cmghdr{}`和`cmsgcred{}`这样的结构体是属于out-of-band data, 什么是out-of-band data呢?他和in-bind data有什么区别呢?
+在两个host进行交流的时候有时候会希望存在一种方式告知对方目前连接的情况, 那么在这种情况下不能直接发送信息过去, 因为这样对方无法分辨是正常的数据还是告知条件的数据. 因此常用的实现方式是用header来进行标识, TCP中就存在一个`urgent pointer`将特定的数据标识为out-of-band
+## passing descriptors
 现在考虑以下问题,如何将开放的descriptor从一个进程传到另外一个进程,比较容易想到的思路是通过fork来实现,因为child process会拥有所有parent process的descriptor,另外一种方式是通过exec类函数,这类函数可以将替换进程的image的时候是保持所有descriptor开放的.那么如何在一个进程中让另外一个进程的某个descriptor开放呢,这个时候就需要使用到Unix domain protocol了.
 简而言之是通过进程之间通讯的方式来完成在一个进程中要求另外一个进程的某个descriptor开放,具体的步骤如下:
 - 首先创造一个Unix domain socket,如果进程之间是无关的(例如不是父子关系),那么具体步骤就和我们之前叙述的相似,server和client bind某个pathname之后connect来进行通讯
@@ -40,3 +43,7 @@ Unix domain Protocol是用来进行同一个host上的进程之间的通讯的�
 - child去执行对应的打开文件的指令, 并将打开文件的fd传递给parent
 - parent读取接受到的fd, 再从fd中读取文件内容最终打印出来
 在上述过程中child与parent之间传递fd就是通过`msghdr{}`的结构体来进行的.
+## receive sender credentials
+在client和server进行交流的时候, server有必要知道client的权限从而知道哪些request是可以被满足的而有些则不能.
+![](image/2022-04-10-10-45-42.png)
+具体结构如图所示
