@@ -1,0 +1,2 @@
+# introduction
+multicasting是一种介于unicasting和broadcasting之间的工作方式, 前者仅仅支持发送信息到单一的一个IP地址, 后者则是发送信息到subnet下每一个host(甚至包括sender本身), 后者在工作的过程中会造成不必要的网络资源浪费, 因为并不是subnet之下的所有host都对发送的datagram感兴趣的, 因此权衡两者的优缺点想要发送datagram给同一个subnet之下的多个interface最好的方式是采用multicasting.
